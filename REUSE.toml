@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: None
+# SPDX-License-Identifier: CC0-1.0
+version = 1
+
+# Patches: derivative of upstream TF-PSA-Crypto source, same dual license.
+[[annotations]]
+path = "generator/patches/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The Mbed TLS Contributors"
+SPDX-License-Identifier = "Apache-2.0 OR GPL-2.0-or-later"
+
+[[annotations]]
+path = "bench/tiny-AES-c/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "kokke and tiny-AES-c contributors"
+SPDX-License-Identifier = "Unlicense"
+
+# Dotfiles / tool configs that can't carry inline comments cleanly.
+[[annotations]]
+path = [".gitmodules", ".claude/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "None"
+SPDX-License-Identifier = "CC0-1.0"

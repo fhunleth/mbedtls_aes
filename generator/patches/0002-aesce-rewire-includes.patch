@@ -1,0 +1,17 @@
+--- a/aesce.c
++++ b/aesce.c
+@@ -39,13 +39,11 @@
+ 
+ #endif /* defined(__clang__) &&  (__clang_major__ >= 4) */
+ 
+-#include "tf_psa_crypto_common.h"
++#include "mbedtls_aes.h"
+ 
+ #if defined(MBEDTLS_AESCE_C)
+ 
+ #include <string.h>
+-
+-#include "aesce.h"
+ 
+ #if defined(MBEDTLS_AESCE_HAVE_CODE)
+ 

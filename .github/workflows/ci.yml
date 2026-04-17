@@ -1,0 +1,86 @@
+# SPDX-FileCopyrightText: None
+# SPDX-License-Identifier: CC0-1.0
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Check that the committed mbedtls_aes.{c,h} matches what's generated.
+  amalgamate-fresh:
+    runs-on: ubuntu-latest
+    name: amalgamate-fresh
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - name: Regenerate and diff
+        run: |
+          make amalgamate
+          git diff --exit-code -- mbedtls_aes.c mbedtls_aes.h
+
+  # Native builds
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64,  os: ubuntu-latest }
+          - { name: macos-arm64,   os: macos-latest }
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - name: make check
+        run: make check
+
+  # Cross builds under qemu-user-static
+  cross:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: aarch64
+            triple: aarch64-linux-gnu
+            libc:   libc6-dev-arm64-cross
+            qemu:   qemu-aarch64-static
+            march:  "-march=armv8-a"
+          - name: armv7
+            triple: arm-linux-gnueabihf
+            libc:   libc6-dev-armhf-cross
+            qemu:   qemu-arm-static
+            march:  "-march=armv7-a -mfpu=neon"
+          - name: riscv64
+            triple: riscv64-linux-gnu
+            libc:   libc6-dev-riscv64-cross
+            qemu:   qemu-riscv64-static
+            march:  ""
+    name: cross-${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+      - name: Install cross toolchain and qemu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-${{ matrix.triple }} ${{ matrix.libc }} qemu-user-static
+      - name: Amalgamate
+        run: make amalgamate
+      - name: Build
+        run: |
+          make \
+            CC=${{ matrix.triple }}-gcc \
+            CFLAGS="-O2 -Wall -Wextra -Wno-unused-parameter -Wno-unused-function -std=c11 -D_GNU_SOURCE ${{ matrix.march }} -I." \
+            LDFLAGS="${{ matrix.march }}"
+      - name: Run under qemu
+        env:
+          QEMU_LD_PREFIX: /usr/${{ matrix.triple }}
+          AES_BENCH_MIN_SECONDS: "0.2"
+        run: ${{ matrix.qemu }} ./aes_bench

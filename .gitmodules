@@ -1,0 +1,3 @@
+[submodule "TF-PSA-Crypto"]
+	path = TF-PSA-Crypto
+	url = https://github.com/Mbed-TLS/TF-PSA-Crypto.git
