@@ -12,7 +12,7 @@ SRCS    := bench/benchmark.c bench/tiny-AES-c/aes.c mbedtls_aes.c
 OBJS    := $(SRCS:%.c=$(OBJDIR)/%.o)
 GEN     := mbedtls_aes.c mbedtls_aes.h
 
-CROSS_ARCHES := aarch64 armv7 riscv64
+CROSS_ARCHES := aarch64 armv7 armv8a32 riscv64
 
 .PHONY: all run check amalgamate cross $(addprefix cross-,$(CROSS_ARCHES)) clean
 

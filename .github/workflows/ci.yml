@@ -46,9 +46,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { arch: aarch64, apt: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross" }
-          - { arch: armv7,   apt: "gcc-arm-linux-gnueabihf libc6-dev-armhf-cross" }
-          - { arch: riscv64, apt: "gcc-riscv64-linux-gnu libc6-dev-riscv64-cross" }
+          - { arch: aarch64,  apt: "gcc-aarch64-linux-gnu libc6-dev-arm64-cross" }
+          - { arch: armv7,    apt: "gcc-arm-linux-gnueabihf libc6-dev-armhf-cross" }
+          - { arch: armv8a32, apt: "gcc-arm-linux-gnueabihf libc6-dev-armhf-cross" }
+          - { arch: riscv64,  apt: "gcc-riscv64-linux-gnu libc6-dev-riscv64-cross" }
     name: cross-${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v6

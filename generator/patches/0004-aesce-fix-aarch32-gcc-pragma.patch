@@ -1,0 +1,27 @@
+Fix the GCC target pragma when AESCE is compiled without -march=...+crypto on
+the command line.
+
+Upstream's `pragma GCC target("+crypto")` is the correct syntax for AArch64
+GCC but is silently a no-op on AArch32 GCC — the AES intrinsics in arm_neon.h
+are still flagged with mismatched target attributes and `always_inline` calls
+fail with "target specific option mismatch". On AArch32 GCC the working
+incantation is `pragma GCC target("fpu=crypto-neon-fp-armv8")`.
+
+This matters for downstream builds (e.g. Buildroot/Nerves on rpi3) that ship
+a stock toolchain whose default -march does not include +crypto, relying on
+the fallback pragma block to enable the intrinsics for the AESCE TU.
+
+--- a/aesce.c
++++ b/aesce.c
+@@ -96,7 +96,11 @@
+ #       define MBEDTLS_POP_TARGET_PRAGMA
+ #   elif defined(__GNUC__)
+ #       pragma GCC push_options
++#       if defined(__aarch64__)
+ #       pragma GCC target ("+crypto")
++#       else
++#       pragma GCC target ("fpu=crypto-neon-fp-armv8")
++#       endif
+ #       define MBEDTLS_POP_TARGET_PRAGMA
+ #   elif defined(_MSC_VER)
+ #       error "Required feature(__ARM_FEATURE_AES) is not enabled."

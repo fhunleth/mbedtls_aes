@@ -10,6 +10,8 @@ set -euo pipefail
 
 ARCH="${1:-}"
 
+QEMU_FLAGS=()
+
 case "$ARCH" in
   aarch64)
     TRIPLES=(aarch64-nerves-linux-gnu aarch64-linux-gnu)
@@ -23,6 +25,18 @@ case "$ARCH" in
     MARCH="-march=armv7-a -mfpu=neon"
     APT_PKGS="gcc-arm-linux-gnueabihf libc6-dev-armhf-cross"
     ;;
+  armv8a32)
+    # 32-bit ARMv8-A — same toolchain as armv7. -march=armv8-a *without*
+    # +crypto is intentional: it forces upstream aesce.c's fallback pragma
+    # block to fire, which is the path that broke on AArch32 GCC and that
+    # 0004-aesce-fix-aarch32-gcc-pragma.patch fixes. qemu-arm needs -cpu max
+    # for HWCAP2_AES to be set so the runtime selects AES-CE.
+    TRIPLES=(armv7-nerves-linux-gnueabihf arm-linux-gnueabihf)
+    QEMU_NAMES=(qemu-arm-static qemu-arm)
+    MARCH="-march=armv8-a -mfpu=neon-fp-armv8"
+    QEMU_FLAGS=(-cpu max)
+    APT_PKGS="gcc-arm-linux-gnueabihf libc6-dev-armhf-cross"
+    ;;
   riscv64)
     TRIPLES=(riscv64-nerves-linux-gnu riscv64-linux-gnu)
     QEMU_NAMES=(qemu-riscv64-static qemu-riscv64)
@@ -30,12 +44,12 @@ case "$ARCH" in
     APT_PKGS="gcc-riscv64-linux-gnu libc6-dev-riscv64-cross"
     ;;
   ""|-h|--help)
-    echo "usage: $0 <aarch64|armv7|riscv64>" >&2
+    echo "usage: $0 <aarch64|armv7|armv8a32|riscv64>" >&2
     exit 2
     ;;
   *)
     echo "$0: unknown arch '$ARCH'" >&2
-    echo "usage: $0 <aarch64|armv7|riscv64>" >&2
+    echo "usage: $0 <aarch64|armv7|armv8a32|riscv64>" >&2
     exit 2
     ;;
 esac
@@ -105,7 +119,7 @@ make amalgamate
 make CC="${TRIPLE}-gcc" CFLAGS="$CFLAGS" LDFLAGS="$MARCH" OBJDIR="$OBJDIR" BIN="$BIN"
 
 if [ -n "$QEMU" ]; then
-  QEMU_LD_PREFIX="$SYSROOT" "$QEMU" "./$BIN" --check-only
+  QEMU_LD_PREFIX="$SYSROOT" "$QEMU" "${QEMU_FLAGS[@]}" "./$BIN" --check-only
 else
   echo "==> built ./$BIN (skipping run; qemu-user is Linux-only)"
 fi

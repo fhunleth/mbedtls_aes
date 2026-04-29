@@ -3208,7 +3208,11 @@ int mbedtls_aesni_setkey_enc(unsigned char *rk,
 #       define MBEDTLS_POP_TARGET_PRAGMA
 #   elif defined(__GNUC__)
 #       pragma GCC push_options
+#       if defined(__aarch64__)
 #       pragma GCC target ("+crypto")
+#       else
+#       pragma GCC target ("fpu=crypto-neon-fp-armv8")
+#       endif
 #       define MBEDTLS_POP_TARGET_PRAGMA
 #   elif defined(_MSC_VER)
 #       error "Required feature(__ARM_FEATURE_AES) is not enabled."
