@@ -14,6 +14,26 @@ on x86/x64 and the Armv8-A Cryptographic Extension on AArch64. Hardware
 acceleration is auto-enabled at compile-time based on target architecture;
 runtime dispatch then picks the fastest available path based on CPU features.
 
+Every platform I try has different performance. Roughly, I'm seeing Mbed TLS's
+AES implementation come in 5x-10x better than tiny-AES-c without hardware
+acceleration and 20x-100x better with hardware acceleration on 64-bit ARM
+embedded and desktop processors. Here's an example run on my laptop from the
+included `aes_bench` program:
+
+```
+--- tiny-AES-c (AES-256-CBC) ---
+  encrypt: 5 x 100 MB in 3.081 s ->  162.26 MB/s
+  decrypt: 2 x 100 MB in 3.891 s ->   51.40 MB/s
+
+--- mbedtls_aes default (AES-256-CBC) ---
+  encrypt: 32 x 100 MB in 3.060 s -> 1045.85 MB/s
+  decrypt: 226 x 100 MB in 3.009 s -> 7510.42 MB/s
+
+--- mbedtls_aes XTS (AES-256-XTS, 4096 B sectors) ---
+  encrypt: 233 x 100 MB in 3.001 s -> 7763.03 MB/s
+  decrypt: 230 x 100 MB in 3.002 s -> 7662.29 MB/s
+```
+
 ## Getting the library
 
 Grab the two files from the repository:
@@ -23,10 +43,10 @@ mbedtls_aes.c
 mbedtls_aes.h
 ```
 
-Drop them into your project, compile `mbedtls_aes.c` with the rest of your code,
+Copy them into your project, compile `mbedtls_aes.c` with the rest of your code,
 and `#include "mbedtls_aes.h"` wherever you use it. No build flags are required.
 
-To build yourself, run the following:
+To build yourself in this repository, run the following:
 
 ```sh
 git submodule update --init --recursive
@@ -35,8 +55,8 @@ make check
 ```
 
 Always run `make check`. While this project shouldn't break the Mbed TLS AES
-implementation, this spot-checks every AES mode against NIST test vectors just
-in case.
+implementation, this spot-checks the AES implementation against NIST test
+vectors just in case.
 
 ## Minimal example
 
