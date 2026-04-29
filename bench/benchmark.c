@@ -84,6 +84,80 @@ static void run_benchmark(const backend_t *be, const uint8_t key[AES_KEYBYTES],
     be->teardown(ctx);
 }
 
+/* ---------- mbedtls_aes XTS benchmark ----------
+ *
+ * XTS does not fit the backend_t shape: keys are 2x as long, the per-call
+ * input is a 16-byte tweak (data unit number) instead of an IV, and realistic
+ * use encrypts a sector at a time with an incrementing tweak. So it gets its
+ * own driver. tiny-AES-c does not implement XTS, so this is mbedtls only.
+ */
+
+#define XTS_SECTOR_SIZE 4096
+#define XTS_KEYBITS     512   /* AES-256-XTS uses two 256-bit keys. */
+#define XTS_KEYBYTES    (XTS_KEYBITS / 8)
+
+static void xts_make_tweak(uint8_t tweak[AES_BLOCK], uint64_t sector)
+{
+    memset(tweak, 0, AES_BLOCK);
+    for (int i = 0; i < 8; i++) tweak[i] = (uint8_t)(sector >> (8 * i));
+}
+
+static void run_xts_benchmark(const uint8_t key[XTS_KEYBYTES], uint8_t *buf)
+{
+    printf("--- mbedtls_aes XTS (AES-256-XTS, %d B sectors) ---\n", XTS_SECTOR_SIZE);
+
+    mbedtls_aes_xts_context enc, dec;
+    mbedtls_aes_xts_init(&enc);
+    mbedtls_aes_xts_init(&dec);
+    if (mbedtls_aes_xts_setkey_enc(&enc, key, XTS_KEYBITS) != 0 ||
+        mbedtls_aes_xts_setkey_dec(&dec, key, XTS_KEYBITS) != 0) {
+        printf("  setup failed\n\n");
+        mbedtls_aes_xts_free(&enc);
+        mbedtls_aes_xts_free(&dec);
+        return;
+    }
+
+    size_t iters = 0;
+    double t0 = now_seconds();
+    double t;
+    do {
+        for (size_t off = 0; off + XTS_SECTOR_SIZE <= BUFFER_SIZE; off += XTS_SECTOR_SIZE) {
+            uint8_t tweak[AES_BLOCK];
+            xts_make_tweak(tweak, (uint64_t)(off / XTS_SECTOR_SIZE));
+            mbedtls_aes_crypt_xts(&enc, MBEDTLS_AES_ENCRYPT, XTS_SECTOR_SIZE,
+                                  tweak, buf + off, buf + off);
+        }
+        iters++;
+        t = now_seconds();
+    } while (t - t0 < benchmark_runtime_seconds);
+    double enc_elapsed = t - t0;
+    double enc_bytes = (double)iters * (double)BUFFER_SIZE;
+    printf("  encrypt: %zu x %d MB in %.3f s -> %7.2f MB/s\n",
+           iters, BUFFER_SIZE / (1024 * 1024), enc_elapsed,
+           enc_bytes / (1024.0 * 1024.0) / enc_elapsed);
+
+    iters = 0;
+    t0 = now_seconds();
+    do {
+        for (size_t off = 0; off + XTS_SECTOR_SIZE <= BUFFER_SIZE; off += XTS_SECTOR_SIZE) {
+            uint8_t tweak[AES_BLOCK];
+            xts_make_tweak(tweak, (uint64_t)(off / XTS_SECTOR_SIZE));
+            mbedtls_aes_crypt_xts(&dec, MBEDTLS_AES_DECRYPT, XTS_SECTOR_SIZE,
+                                  tweak, buf + off, buf + off);
+        }
+        iters++;
+        t = now_seconds();
+    } while (t - t0 < benchmark_runtime_seconds);
+    double dec_elapsed = t - t0;
+    double dec_bytes = (double)iters * (double)BUFFER_SIZE;
+    printf("  decrypt: %zu x %d MB in %.3f s -> %7.2f MB/s\n\n",
+           iters, BUFFER_SIZE / (1024 * 1024), dec_elapsed,
+           dec_bytes / (1024.0 * 1024.0) / dec_elapsed);
+
+    mbedtls_aes_xts_free(&enc);
+    mbedtls_aes_xts_free(&dec);
+}
+
 /* ---------- tiny-AES-c backend ---------- */
 
 static void *tiny_setup(const uint8_t key[AES_KEYBYTES])
@@ -822,6 +896,10 @@ int main(int argc, char **argv)
         .decrypt = mbed_decrypt, .teardown = mbed_teardown,
     };
     run_benchmark(&mbed_be, key, iv, buf);
+
+    uint8_t xts_key[XTS_KEYBYTES];
+    for (int i = 0; i < XTS_KEYBYTES; i++) xts_key[i] = (uint8_t)(i * 11 + 5);
+    run_xts_benchmark(xts_key, buf);
 
     free(buf);
     return 0;
