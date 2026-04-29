@@ -1,0 +1,4 @@
+# SPDX-FileCopyrightText: None
+# SPDX-License-Identifier: CC0-1.0
+
+nerves-toolchain v13.2.0-aarch64-nerves-linux-gnu v13.2.0-armv7-nerves-linux-gnueabihf v13.2.0-riscv64-nerves-linux-gnu

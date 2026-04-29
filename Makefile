@@ -12,7 +12,9 @@ SRCS    := bench/benchmark.c bench/tiny-AES-c/aes.c mbedtls_aes.c
 OBJS    := $(SRCS:%.c=$(OBJDIR)/%.o)
 GEN     := mbedtls_aes.c mbedtls_aes.h
 
-.PHONY: all run check amalgamate clean
+CROSS_ARCHES := aarch64 armv7 riscv64
+
+.PHONY: all run check amalgamate cross $(addprefix cross-,$(CROSS_ARCHES)) clean
 
 all: $(BIN)
 
@@ -34,6 +36,12 @@ run: $(BIN)
 
 check: $(BIN)
 	AES_BENCH_MIN_SECONDS=0.2 ./$(BIN)
+
+cross:
+	@for a in $(CROSS_ARCHES); do ./scripts/cross.sh $$a || exit; done
+
+$(addprefix cross-,$(CROSS_ARCHES)):
+	./scripts/cross.sh $(@:cross-%=%)
 
 clean:
 	rm -rf $(OBJDIR) $(BIN)

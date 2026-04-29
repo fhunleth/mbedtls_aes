@@ -17,7 +17,7 @@ SPDX-License-Identifier = "Unlicense"
 
 # Dotfiles / tool configs that can't carry inline comments cleanly.
 [[annotations]]
-path = [".gitmodules", ".claude/**"]
+path = [".gitmodules"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "None"
 SPDX-License-Identifier = "CC0-1.0"
