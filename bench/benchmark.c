@@ -8,9 +8,6 @@
  *
  * Verify that the amalgamated mbedtls_aes works and compare its performance
  * to tiny-AES-c.
- *
- * Set the `AES_BENCH_MIN_SECONDS` environment variable to run the benchmark
- * a different amount of time.
  */
 
 #include <stdio.h>
@@ -758,12 +755,33 @@ static void print_active_path(void)
     printf("mbedtls_aes_get_implementation: %s\n\n", name);
 }
 
-int main(void)
+static void usage(FILE *f, const char *prog)
 {
-    const char *env = getenv("AES_BENCH_MIN_SECONDS");
-    if (env) {
-        double v = atof(env);
-        if (v > 0) benchmark_runtime_seconds = v;
+    fprintf(f,
+            "usage: %s [--min-seconds=<float>] [--check-only]\n"
+            "  --min-seconds=<float>  benchmark each backend for at least this long (default 3.0)\n"
+            "  --check-only           run the cross-check only; skip the benchmark loop\n",
+            prog);
+}
+
+int main(int argc, char **argv)
+{
+    int check_only = 0;
+
+    for (int i = 1; i < argc; i++) {
+        if (strncmp(argv[i], "--min-seconds=", 14) == 0) {
+            double v = atof(argv[i] + 14);
+            if (v > 0) benchmark_runtime_seconds = v;
+        } else if (strcmp(argv[i], "--check-only") == 0) {
+            check_only = 1;
+        } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            usage(stdout, argv[0]);
+            return 0;
+        } else {
+            fprintf(stderr, "%s: unknown argument: %s\n", argv[0], argv[i]);
+            usage(stderr, argv[0]);
+            return 2;
+        }
     }
 
     print_active_path();
@@ -778,6 +796,8 @@ int main(void)
         return 1;
     }
     printf("Cross-check OK.\n\n");
+
+    if (check_only) return 0;
 
     uint8_t *buf = malloc(BUFFER_SIZE);
     if (!buf) {

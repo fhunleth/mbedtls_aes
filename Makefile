@@ -35,7 +35,7 @@ run: $(BIN)
 	./$(BIN)
 
 check: $(BIN)
-	AES_BENCH_MIN_SECONDS=0.2 ./$(BIN)
+	./$(BIN) --min-seconds=0.2
 
 cross:
 	@for a in $(CROSS_ARCHES); do ./scripts/cross.sh $$a || exit; done

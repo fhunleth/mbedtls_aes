@@ -105,7 +105,7 @@ make amalgamate
 make CC="${TRIPLE}-gcc" CFLAGS="$CFLAGS" LDFLAGS="$MARCH" OBJDIR="$OBJDIR" BIN="$BIN"
 
 if [ -n "$QEMU" ]; then
-  QEMU_LD_PREFIX="$SYSROOT" AES_BENCH_MIN_SECONDS=0.2 "$QEMU" "./$BIN"
+  QEMU_LD_PREFIX="$SYSROOT" "$QEMU" "./$BIN" --check-only
 else
   echo "==> built ./$BIN (skipping run; qemu-user is Linux-only)"
 fi
